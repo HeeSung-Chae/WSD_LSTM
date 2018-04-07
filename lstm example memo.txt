@@ -1,0 +1,86 @@
+# RNN model
+rnn_cell = rnn_cell.BasicRNNCell(rnn_size)
+rnn_cell = rnn_cell.BasicLSTMCell(rnn_size)
+rnn_cell = rnn_cell.GRUCell(rnn_size)
+
+# lstm_size는 히든레이어와 관련, 갯수 만큼 output이 나옴
+# 값이 크면 클수록 깊게 학습함
+
+# rnn 셀을 몇 개 설정할 것이냐는 설정을 해줘야됨
+outputs, state = rnn.rnn(rnn_cell, X_split, state)
+# rnn_cell은 대상 셀
+# X_split에 넣을 벡터 배열을 넣어야됨, [] [] [] []...
+# state의 초기값은 0
+# state의 결과 값을 다음 state에 적용하고 싶을때 state 변수에 사용
+
+# 입력...
+# 단어가 4개 중에 1개니까 4
+[<tf.Tensor 'inputName:1' shape=(1,4) dtype=float32>,
+<tf.Tensor 'inputName:2' shape=(1,4) dtype=float32>,
+<tf.Tensor 'inputName:3' shape=(1,4) dtype=float32>,
+<tf.Tensor 'inputName:4' shape=(1,4) dtype=float32>]
+# 출력...
+# batch size가 1개 밖에 없어서 1
+# 4는 입력과는 상관없이 rnn size
+[<tf.Tensor 'outputName:1' shape=(1,4) dtype=float32>,
+<tf.Tensor 'outputName:2' shape=(1,4) dtype=float32>,
+<tf.Tensor 'outputName:3' shape=(1,4) dtype=float32>,
+<tf.Tensor 'outputName:4' shape=(1,4) dtype=float32>]
+
+
+
+example
+
+# rnn_size도 알아서 설정
+# rnn_cell을 생성하면 그 state_size가 얼마인지 하는 값이 들어있음
+rnn_cell = rnn_cell.BasicRNNCell(rnn_size)
+
+# 초기의 state 값은 0
+# batch_size 얼마로 할지 정해주면 됨
+state = tf.zeros([batch_size, rnn_cell.state_size])
+
+# 가지고 있는 x_data를 time_step_size로 split을 시켜서
+# 각각의 array로 만들어줌 -> [] [] [] ...
+# split이 몇개가 있냐에 따라서 time_step_size의 셀이 생김 <- ??
+X_split = tf.split(0, time_step_size, x_data)
+
+# 위에 값을 넣으면 됨
+# 그 다음 state와 outputs을 만들게됨
+outputs, state = rnn.rnn(rnn_cell, X_split, state)
+
+
+
+
+출력되는 값을 학습하기 위해서는 Cost...
+# 아래와 같은 데이터 타입으로 입력해야됨
+# logits: list of 2D Tensors of shape [batch_size x num_decoder_symbols].
+# targets: list of 1D batch-sized int32 Tensors of the same length as logits.
+# weights: list of 1D batch-sized float-Tensors of the same length as logits.
+
+# 입력 값을 맞추기위해 reshape해야됨
+# -1은 n개
+logits = tf.reshape(tf.concat(1, outputs), [-1, rnn_size])
+targets = tf.reshape(sample[1:], [-1])
+weights = tf.ones([time_step_size * batch_size])
+
+# 셀의 길이(time_step_size?)가 길어지면 계산이 크흠...하니까
+# sequence_loss_by_example라는 함수를 사용하는데
+# logits은 출력(예측) 값, targets은 출력 값의 실제 정답, weights은 가중치인데 보통 1로 설정
+loss = tf.nn.seq2seq.sequence_loss_by_example([logits], [targets], [weights])
+# cost는 batch_size에 따라서 달라짐
+cost = tf.reduce_sum(loss) / batch_size
+# 옵티마이즈는 여러가지 뭐 사용해도되고.. 마지막에 미니마이즈 해주면 됨
+train_op = tf.RMSPropOptimizer(0.01, 0.9).minimize(cost)
+
+
+
+Train & Prediction
+# Launch the graph in a session
+with tf.Session() as sess:
+  # you need to initialize all variables
+  tf.initialize_all_variables().run()
+  # 몇 번 학습시킬거냐
+  for i in range(100):
+    sess.run(train_op)
+    result = sess.run(tf.arg_max(logits, 1))
+    print(result, [char_rdic[t] for t in result])
