@@ -143,7 +143,6 @@ for posDir in posSentGlob:
             print(output_sent)
             print(output_sent_data)
             break
-
         break
 
 
