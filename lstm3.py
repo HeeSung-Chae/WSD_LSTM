@@ -61,8 +61,6 @@ for posDir in posSentGlob:
         output_sent = []
         output_sent_data = []
         # sentChar_len = sentence_words.__len__()
-        input_sent_vec2 = []
-        output_sent_data2 = []
 
         start_time = time.time()
         # 문장들 필요한 정보들 저장
@@ -166,13 +164,6 @@ for posDir in posSentGlob:
             #     print()
         # break
 
-        # # input_sent_vec2.append(input_sent_vec)
-        # # output_sent_data2.append(output_sent_data)
-        # # print("input_sent_vec2 : ", input_sent_vec2)
-        # # print("output_sent_data2 : ", output_sent_data2)
-        # print()
-        # break
-
         # for a, b in zip(input_sent_vec, output_sent_data):
         #     print(a.__len__(), a)
         #     print(b.__len__(), b)
@@ -200,42 +191,57 @@ for posDir in posSentGlob:
         #     print()
         # break
 
+        # padding을 하려면 shape의 rank=2가 되어야 됨
+        # pad_input_sent = []
+        # pad_input_sent.append(input_sent)
+
+
+        # 문자열이라 "0" 값을 수동으로 append
+        for a in input_sent:
+            a.reverse()
+            while True:
+                if a.__len__() < 18:
+                    a.append("0")
+                else:
+                    break
+            a.reverse()
+        #     print(a.__len__(), a)
+        # break
+
+
         left = 0
         right = 0
         up = 0
         down = 0
 
-        # padding을 하려면 shape의 rank=2가 되어야 됨
-        pad_input_sent = []
-        pad_input_sent.append(input_sent)
         inputData = []
         inputVecData = []
         outputData = []
         # 입력 embedding vector 18로 padding
-        for a, b, c in zip(pad_input_sent, input_sent_vec, output_sent_data):
-            if a.__len__() < 18:
-                up = 18 - a.__len__()
-            elif a.__len__() == 18:
+        for b, c in zip(input_sent_vec, output_sent_data):
+            if b.__len__() < 18:
+                up = 18 - b.__len__()
+            elif b.__len__() == 18:
                 up = 0
-            input_constant = tf.constant(a)
+            # input_constant = tf.constant(a)
             inputVec_constant = tf.constant(b)
             output_constant = tf.constant(c)
             paddings = tf.constant([[up, down], [left, right]])
 
-            input_result = tf.pad(input_constant, paddings, "CONSTANT")
+            # input_result = tf.pad(input_constant, paddings, "CONSTANT")
             inputVec_result = tf.pad(inputVec_constant, paddings, "CONSTANT")
             output_result = tf.pad(output_constant, paddings, "CONSTANT")
 
-            inputData.append(input_result)
+            # inputData.append(input_result)
             inputVecData.append(inputVec_result)
             outputData.append(output_result)
 
-        for a, b, c in zip(inputData, inputVecData, outputData):
-            print(a.__len__())
-            print(b)
-            print(c)
-            print()
-        break
+        # for a, b, c in zip(inputData, inputVecData, outputData):
+        #     print(a.__len__())
+        #     print(b)
+        #     print(c)
+        #     print()
+        # break
 
         # for a, b, c, d, e, f in zip(total_sent, total_sent_index, input_sent, output_sent,
         #                             input_sent_vec.__len__(), output_sent_data):
@@ -280,13 +286,13 @@ for posDir in posSentGlob:
         allCount = 0
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
-            for inVec, outData, ttt in zip(input_sent_vec, output_sent_data, inputVec_result):
+            for inputVec, outData, ttt in zip(input_sent_vec, output_sent_data, inputVec_result):
                 # print(inVec)
                 # print(outData)
                 for i in range(1200):
                     try:
-                        l, _ = sess.run([loss, train], feed_dict={X : inVec, Y : outData})
-                        result = sess.run(prediction, feed_dict={X : inVec})
+                        l, _ = sess.run([loss, train], feed_dict={X: inputVec, Y: outData})
+                        result = sess.run(prediction, feed_dict={X: inputVec})
 
                         if(i == 1199):
                             print(i, "loss: ", l, "prediction: ", result, "true Y: ", outData)
