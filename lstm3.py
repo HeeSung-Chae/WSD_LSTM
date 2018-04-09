@@ -2,8 +2,6 @@
 import glob
 import os
 import tensorflow as tf
-import numpy as np
-from keras.preprocessing.sequence import pad_sequences
 import time
 
 
@@ -63,6 +61,8 @@ for posDir in posSentGlob:
         output_sent = []
         output_sent_data = []
         # sentChar_len = sentence_words.__len__()
+        input_sent_vec2 = []
+        output_sent_data2 = []
 
         start_time = time.time()
         # 문장들 필요한 정보들 저장
@@ -84,66 +84,103 @@ for posDir in posSentGlob:
             temp_total_sent = []
             temp_total_sent_index = {}
             temp_input_sent = []
-            temp_input_sent_vec = [[]]
+            temp_input_sent_vec = []
             temp_output_sent = []
             temp_output_sent_data = [[]]
 
-            temp_total_sent.append("0")
-            temp_input_sent.append("0")
-            temp_output_sent.append("0")
+            wrongSent = False
             for num, a in enumerate(sentence_content.split(' ')[0:-1]):
                 # 중의성 단어까지를 문장 길이로
                 if a.split('__')[0] == wsd_word_kor:
-                    temp_output_sent.append(a)
-                    temp_total_sent.append(a)
-                    break
+                    # 첫 단어가 목인 경우, 순방향이기 때문에 패스
+                    if num == 0:
+                        wrongSent = True
+                        break
+                    else:
+                        temp_output_sent.append(a)
+                        temp_total_sent.append(a)
+                        break
 
                 if num == 0:
                     temp_input_sent.append(a)
-                    # temp_total_sent.append(a)
+                    temp_total_sent.append(a)
                 elif num > 0:
                     temp_input_sent.append(a)
                     temp_output_sent.append(a)
 
-                for b in temp_total_sent:
-                    if b == a:
-                        break
-                    else:
+                    flag_total_sent = True
+                    for b in temp_total_sent:
+                        if b == a:
+                            flag_total_sent = False
+                            break
+                    if flag_total_sent.__eq__(True):
                         temp_total_sent.append(a)
+
+            if wrongSent.__eq__(True):
+                continue
+            else:
+                # temp_total_sent 안해도되나?
+                # temp_total_sent.reverse()
+                temp_input_sent.reverse()
+                temp_output_sent.reverse()
+                while True:
+                    if temp_input_sent.__len__() > 18:
+                        # temp_total_sent.pop()
+                        temp_input_sent.pop()
+                        temp_output_sent.pop()
+                    elif temp_input_sent.__len__() <= 18:
                         break
+                # temp_total_sent.reverse()
+                temp_input_sent.reverse()
+                temp_output_sent.reverse()
 
-            for num, a in enumerate(temp_total_sent):
-                temp_total_sent_index[a] = num
+                for num, a in enumerate(temp_total_sent):
+                    temp_total_sent_index[a] = num + 1
 
-            for a in temp_output_sent_data:
-                for b in temp_output_sent:
-                    a.append(temp_total_sent_index[b])
+                for a in temp_output_sent_data:
+                    for b in temp_output_sent:
+                        a.append(temp_total_sent_index[b])
 
-            for a in temp_input_sent_vec:
+                # for a in temp_input_sent_vec:
                 for words in temp_input_sent:
                     for b in vecDic:
-                        if b == "0":
-                            a.append(0)
-                        elif b == words:
-                            a.append(vecDic[b])
+                        # if b == "0":
+                        #     temp_input_sent_vec.append(0)
+                        if b == words:
+                            temp_input_sent_vec.append(vecDic[b])
                             break
 
+                total_sent.append(temp_total_sent)
+                total_sent_index.append(temp_total_sent_index)
+                input_sent.append(temp_input_sent)
+                input_sent_vec.append(temp_input_sent_vec)
+                output_sent.append(temp_output_sent)
+                output_sent_data.append(temp_output_sent_data)
 
-            total_sent.append(temp_total_sent)
-            total_sent_index.append(temp_total_sent_index)
-            input_sent.append(temp_input_sent)
-            input_sent_vec.append(temp_input_sent_vec)
-            output_sent.append(temp_output_sent)
-            output_sent_data.append(temp_output_sent_data)
+            #     print("total_sent : ", temp_total_sent)
+            #     print("total_sent_index : ", temp_total_sent_index)
+            #     print("input_sent : ", temp_input_sent)
+            #     print("input_sent_vec : ", temp_input_sent_vec.__len__())
+            #     print("output_sent : ", temp_output_sent)
+            #     print("output_sent_data : ", temp_output_sent_data)
+            #     print()
+        # break
 
-            print(total_sent)
-            print(total_sent_index)
-            print(input_sent)
-            print(input_sent_vec)
-            print(output_sent)
-            print(output_sent_data)
-            break
-        break
+        # # input_sent_vec2.append(input_sent_vec)
+        # # output_sent_data2.append(output_sent_data)
+        # # print("input_sent_vec2 : ", input_sent_vec2)
+        # # print("output_sent_data2 : ", output_sent_data2)
+        # print()
+        # break
+
+        # for a, b in zip(input_sent_vec, output_sent_data):
+        #     print(a.__len__(), a)
+        #     print(b.__len__(), b)
+        #     print()
+        # print()
+        # print(input_sent_vec.__len__(), input_sent_vec)
+        # print(output_sent_data.__len__(), output_sent_data)
+        # break
 
 
         #  0으로 패딩하고 패딩한 값 0을 마스킹하는데
@@ -156,25 +193,62 @@ for posDir in posSentGlob:
         #
 
 
-        # 입력 embedding vector 18로 padding
-        for a in input_sent_vec:
-            if(a.__len__() != 18):
-                a = pad_sequences(a, maxlen=18, dtype='float32')
-        # if(input_sent_vec.__len__() != 18):
-        #     input_sent_vec = pad_sequences(input_sent_vec, maxlen=18, dtype='float32')
+        # for a, b, c in zip(input_sent, input_sent_vec, output_sent_data):
+        #     print(a.__len__(), a)
+        #     print(b.__len__()   )
+        #     print(c.__len__(), c)
+        #     print()
+        # break
 
-        for a, b, c, d, e, f in zip(total_sent, input_sent, output_sent,
-                                    total_sent_index, output_sent_data, input_sent_vec):
-            print(a)
+        left = 0
+        right = 0
+        up = 0
+        down = 0
+
+        # padding을 하려면 shape의 rank=2가 되어야 됨
+        pad_input_sent = []
+        pad_input_sent.append(input_sent)
+        inputData = []
+        inputVecData = []
+        outputData = []
+        # 입력 embedding vector 18로 padding
+        for a, b, c in zip(pad_input_sent, input_sent_vec, output_sent_data):
+            if a.__len__() < 18:
+                up = 18 - a.__len__()
+            elif a.__len__() == 18:
+                up = 0
+            input_constant = tf.constant(a)
+            inputVec_constant = tf.constant(b)
+            output_constant = tf.constant(c)
+            paddings = tf.constant([[up, down], [left, right]])
+
+            input_result = tf.pad(input_constant, paddings, "CONSTANT")
+            inputVec_result = tf.pad(inputVec_constant, paddings, "CONSTANT")
+            output_result = tf.pad(output_constant, paddings, "CONSTANT")
+
+            inputData.append(input_result)
+            inputVecData.append(inputVec_result)
+            outputData.append(output_result)
+
+        for a, b, c in zip(inputData, inputVecData, outputData):
+            print(a.__len__())
             print(b)
             print(c)
-            print(d)
-            print(e)
-            print(f)
-            print(a.__len__())
             print()
         break
+
+        # for a, b, c, d, e, f in zip(total_sent, total_sent_index, input_sent, output_sent,
+        #                             input_sent_vec.__len__(), output_sent_data):
+        #     print(a)
+        #     print(b)
+        #     print(c)
+        #     print(d)
+        #     print(e)
+        #     print(f)
+        #     print()
+        # break
         # 문장 정보 저장 종료
+
         sentence_time = time.time()
 
         hidden_size = 300
@@ -185,7 +259,7 @@ for posDir in posSentGlob:
 
         X = tf.placeholder(tf.float32, [batch_size, sequence_length, input_dim])
         Y = tf.placeholder(tf.int32, [batch_size, sequence_length])
-        cell =  tf.contrib.rnn.BasicLSTMCell(num_units=hidden_size, state_is_tuple=True)
+        cell = tf.contrib.rnn.BasicLSTMCell(num_units=hidden_size, state_is_tuple=True)
 
         initial_state = cell.zero_state(batch_size, tf.float32)
         outputs, _states = tf.nn.dynamic_rnn(cell, X,
@@ -206,9 +280,9 @@ for posDir in posSentGlob:
         allCount = 0
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
-            for inVec, outData, ttt in zip(input_sent_vec, output_sent_data, input_sent):
-                print(inVec)
-                print(outData)
+            for inVec, outData, ttt in zip(input_sent_vec, output_sent_data, inputVec_result):
+                # print(inVec)
+                # print(outData)
                 for i in range(1200):
                     try:
                         l, _ = sess.run([loss, train], feed_dict={X : inVec, Y : outData})
@@ -230,8 +304,8 @@ for posDir in posSentGlob:
                                 allCount += 1
                             else:
                                 allCount += 1
-                    except ValueError:
-                        print(i, "error ", "valueError: ", ttt, "true Y: ", outData)
+                    except ValueError as errorMessage:
+                        print(i, "ValueError ", "ErrorMessage: ", errorMessage, "true Y: ", outData)
                         errorCount += 1
                         allCount += 1
                         break
