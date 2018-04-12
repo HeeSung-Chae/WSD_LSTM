@@ -2,6 +2,7 @@
 import glob
 import os
 import tensorflow as tf
+import numpy as np
 import time
 
 
@@ -79,6 +80,7 @@ for posDir in posSentGlob:
                 if a.split('__')[0] == wsd_word_kor:
                     break
 
+
             temp_total_sent = []
             temp_total_sent_index = {}
             temp_input_sent = []
@@ -113,6 +115,7 @@ for posDir in posSentGlob:
                             break
                     if flag_total_sent.__eq__(True):
                         temp_total_sent.append(a)
+
 
             if wrongSent.__eq__(True):
                 continue
@@ -164,39 +167,9 @@ for posDir in posSentGlob:
             #     print()
         # break
 
-        # for a, b in zip(input_sent_vec, output_sent_data):
-        #     print(a.__len__(), a)
-        #     print(b.__len__(), b)
-        #     print()
-        # print()
-        # print(input_sent_vec.__len__(), input_sent_vec)
-        # print(output_sent_data.__len__(), output_sent_data)
-        # break
-
-
-        #  0으로 패딩하고 패딩한 값 0을 마스킹하는데
-        #  출력 데이터 첫 번째 값이 0wdww으로 같이 마스킹이 될테니
-        #  패딩하기 전에 0앞에 새로운 0값을 미리 넣어둬야 되는데..
-        #
-        #
-        #
-        #
-        #
-
-
-        # for a, b, c in zip(input_sent, input_sent_vec, output_sent_data):
-        #     print(a.__len__(), a)
-        #     print(b.__len__()   )
-        #     print(c.__len__(), c)
-        #     print()
-        # break
-
-        # padding을 하려면 shape의 rank=2가 되어야 됨
-        # pad_input_sent = []
-        # pad_input_sent.append(input_sent)
-
 
         # 문자열이라 "0" 값을 수동으로 append
+        # 근데 왜 만들었지?...
         for a in input_sent:
             a.reverse()
             while True:
@@ -209,53 +182,63 @@ for posDir in posSentGlob:
         # break
 
 
+
         left = 0
         right = 0
         up = 0
         down = 0
 
-        inputData = []
+        # inputData = []
         inputVecData = []
         outputData = []
         # 입력 embedding vector 18로 padding
-        for b, c in zip(input_sent_vec, output_sent_data):
-            if b.__len__() < 18:
-                up = 18 - b.__len__()
-            elif b.__len__() == 18:
+        for a in input_sent_vec:
+            if a.__len__() < 18:
+                up = 18 - a.__len__()
+            elif a.__len__() == 18:
                 up = 0
-            # input_constant = tf.constant(a)
-            inputVec_constant = tf.constant(b)
-            output_constant = tf.constant(c)
+            inputVec_constant = tf.constant(a)
             paddings = tf.constant([[up, down], [left, right]])
 
-            # input_result = tf.pad(input_constant, paddings, "CONSTANT")
             inputVec_result = tf.pad(inputVec_constant, paddings, "CONSTANT")
-            output_result = tf.pad(output_constant, paddings, "CONSTANT")
-
-            # inputData.append(input_result)
             inputVecData.append(inputVec_result)
-            outputData.append(output_result)
 
-        # for a, b, c in zip(inputData, inputVecData, outputData):
-        #     print(a.__len__())
-        #     print(b)
-        #     print(c)
-        #     print()
-        # break
-
-        # for a, b, c, d, e, f in zip(total_sent, total_sent_index, input_sent, output_sent,
-        #                             input_sent_vec.__len__(), output_sent_data):
-        #     print(a)
-        #     print(b)
-        #     print(c)
-        #     print(d)
-        #     print(e)
-        #     print(f)
-        #     print()
-        # break
-        # 문장 정보 저장 종료
+        # 출력 index 길이 18로 조정
+        for a in output_sent_data:
+            for b in a:
+                b.reverse()
+                while True:
+                    if b.__len__() == 18:
+                        break
+                    elif b.__len__() < 18:
+                        b.append(0)
+                    elif b.__len__() > 18:
+                        b.remove()
+                b.reverse()
+                # outputData.append(tf.constant(b))
+                outputData.append(b)
 
         sentence_time = time.time()
+        # 문장 정보 저장 종료
+
+
+        # for a, b in zip(inputVecData, outputData):
+        #     print(a)
+        # print(inputVecData)
+        # asdf = tf.expand_dims(inputVecData, 0)
+        # print(inputVecData)
+        # break
+
+
+
+
+        # shape 수정한게 적용이 안됨
+        # 일단 임시로 sess에서 수정해서..
+        # shape=(18, 300) --> shape=(1, 18, 300)
+        # for a in inputVecData:
+        #     a = tf.expand_dims(a, 0)
+
+
 
         hidden_size = 300
         input_dim = 300
@@ -286,16 +269,24 @@ for posDir in posSentGlob:
         allCount = 0
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
-            for inputVec, outData, ttt in zip(input_sent_vec, output_sent_data, inputVec_result):
-                # print(inVec)
-                # print(outData)
+            for inputVec, outData in zip(inputVecData, outputData):
+                dim = tf.expand_dims(inputVec, 0)
+                print(inputVec)
+                print(dim)
+                inputRun = sess.run(dim)
                 for i in range(1200):
                     try:
-                        l, _ = sess.run([loss, train], feed_dict={X: inputVec, Y: outData})
-                        result = sess.run(prediction, feed_dict={X: inputVec})
+                        l, _ = sess.run([loss, train], feed_dict={X: inputRun, Y: outData})
+                        result = sess.run(prediction, feed_dict={X: inputRun})
 
                         if(i == 1199):
                             print(i, "loss: ", l, "prediction: ", result, "true Y: ", outData)
+
+                            # print char using dic
+                            result_str = [total_sent[c] for c in np.squeeze(result)]
+                            print("\tPrediction str: ", ''.join(result_str))
+                            print()
+
                             temp = True
                             for aa, bb in zip(result, outData):
                                 for cc, dd in zip(aa, bb):
@@ -314,6 +305,7 @@ for posDir in posSentGlob:
                         print(i, "ValueError ", "ErrorMessage: ", errorMessage, "true Y: ", outData)
                         errorCount += 1
                         allCount += 1
+                        # 아래 break 2개 제거
                         break
                 break
 

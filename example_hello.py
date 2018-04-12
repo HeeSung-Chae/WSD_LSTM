@@ -26,6 +26,16 @@ x_one_hot = [[[0, 0, 0, 0, 0],      # h 0
                       [0, 0, 0, 1, 0]]]     # l 3
 y_data = [[1, 0, 2, 3, 3, 4]]       # ihello
 
+tt = tf.constant(x_one_hot)
+print(x_one_hot)
+print(tt)
+print()
+tk = tf.constant(y_data)
+print(y_data)
+print(tk)
+print()
+
+
 
 
 # create Cell
@@ -66,9 +76,13 @@ train = tf.train.AdamOptimizer(learning_rate=0.01).minimize(loss)
 prediction = tf.argmax(outputs, axis=2)
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
+    print("=== session ===")
+    print(tt)
+    ttt = sess.run(tt)
+    print(ttt)
     for i in range(200):
-        l, _ = sess.run([loss, train], feed_dict={X: x_one_hot, Y:y_data})
-        result = sess.run(prediction, feed_dict={X: x_one_hot})
+        l, _ = sess.run([loss, train], feed_dict={X: ttt, Y: y_data})
+        result = sess.run(prediction, feed_dict={X: ttt})
 
         if(i==199):
             print(i, "loss:", l, "prediction: ", result, "true Y: ", y_data)
